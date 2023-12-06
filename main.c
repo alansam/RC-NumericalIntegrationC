@@ -45,15 +45,14 @@ double int_simpson(double from, double to, double n, double (*func)()) {
   double h = (to - from) / n;
   double sum1 = 0.0;
   double sum2 = 0.0;
-  int i;
 
   // double x;
 
-  for (i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     sum1 += func(from + h * i + h / 2.0);
   }
 
-  for (i = 1; i < n; i++) {
+  for (int i = 1; i < n; i++) {
     sum2 += func(from + h * i);
   }
 
@@ -82,7 +81,7 @@ double f1(double x) {
 }
 
 double f1a(double x) {
-  return x * x * x *x / 4.0;
+  return x * x * x * x / 4.0;
 }
 
 typedef double (*pfunc)(double, double, double, double (*)());
@@ -90,35 +89,67 @@ typedef double (*rfunc)(double);
 
 #define INTG(F, A, B) (F((B)) - F((A)))
 
-int main() {
-  int i, j;
-  double ic;
-  
-  pfunc f[5] = { 
-    int_leftrect, int_rightrect,
-    int_midrect,  int_trapezium,
-    int_simpson 
-  };
-  const char * names[5] = {
-    "leftrect", "rightrect", "midrect",
-    "trapezium", "simpson" 
-  };
-  rfunc rf[] = { f1, f2, f3, f3 };
-  rfunc If[] = { f1a, f2a, f3a, f3a };
-  double ivals[] = { 
-     0.0, 1.0,
-     1.0, 100.0,
-     0.0, 5000.0,
-     0.0, 6000.0
-  };
-  double approx[] = { 100.0, 1000.0, 5000000.0, 6000000.0 };
+typedef struct arguments arguments;
+struct arguments {
+  double ival1;
+  double ival2;
+  double approx;
+};
 
-  for (j = 0; j < (sizeof(rf) / sizeof(rfunc)); j++) {
-    for (i = 0; i < 5 ; i++) {
-      ic = (*f[i])(ivals[2 * j], ivals[2 * j + 1], approx[j], rf[j]);
-      printf("%10s [ 0,1] num: %+lf, an: %lf\n",
-             names[i], ic, INTG((*If[j]), ivals[2 * j], ivals[2 * j + 1]));
+typedef struct int_f int_f;
+struct int_f {
+  pfunc const func;
+  char const name[16];
+};
+
+typedef struct rfuncs rfuncs;
+struct rfuncs {
+  rfunc const rf;
+  rfunc const If;
+};
+
+/*
+ *  MARK:  main()
+ */
+int main(int argc, char const * argv[]) {
+  double ic;
+  int_f int_f_list[] = {
+    { int_leftrect,  "leftrect",  },
+    { int_rightrect, "rightrect", },
+    { int_midrect,   "midrect",   },
+    { int_trapezium, "trapezium", },
+    { int_simpson,   "simpson",   },
+  };
+
+  rfuncs rfl[] = {
+    { .rf = f1, .If = f1a, },
+    { .rf = f2, .If = f2a, },
+    { .rf = f3, .If = f3a, },
+    { .rf = f3, .If = f3a, },
+};
+
+  arguments args[] = {
+    { 0.0,    1.0,     100.0, },
+    { 1.0,  100.0,    1000.0, },
+    { 0.0, 5000.0, 5000000.0, },
+    { 0.0, 6000.0, 6000000.0, },
+  };
+
+  //  loop over integration functions
+  for (size_t j_ = 0ul; j_ < (sizeof(rfl) / sizeof(*rfl)); j_++) {
+    for (size_t i_ = 0ul; i_ < (sizeof(int_f_list) / sizeof(*int_f_list)); i_++) {
+      ic = (*int_f_list[i_].func)(args[j_].ival1,
+                                  args[j_].ival2,
+                                  args[j_].approx,
+                                  rfl[j_].rf);
+
+    printf("%10s [ 0,1] num: %+16.6lf, an: %16.6lf\n",
+           int_f_list[i_].name,
+           ic,
+           INTG((*rfl[j_].If),
+                args[j_].ival1,
+                args[j_].ival2));
     }
-    printf("\n");
+    putchar('\n');
   }
 }
